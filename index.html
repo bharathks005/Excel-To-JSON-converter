@@ -1,0 +1,237 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Excel to Json Convertor</title>
+    <script type='text/javascript' src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js"></script>
+</head>
+
+<body>
+    <input type="file" id="fileUpload" accept=".xls,.xlsx" />
+    <input type="button" id="uploadExcel" value="Upload" />
+    <hr />
+    <div id="jsonData"></div>
+    <hr />
+</body>
+<script>
+    var scr = document.createElement("script");
+    scr.src = "https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js", document.getElementsByTagName("head")[0].appendChild(scr);
+    var inputDiv = document.createElement("input");
+    if (inputDiv.setAttribute("accept", ".xls,.xlsx"), inputDiv.setAttribute("id", "fileUpload"), inputDiv.setAttribute("type", "file"), null != document.body) document.body.appendChild(inputDiv);
+    else {
+        var targetElement = document.getElementsByTagName("head")[0],
+            parent = targetElement.parentNode,
+            newElem = document.createElement("body");
+        parent.lastChild == targetElement ? parent.appendChild(newElem) : parent.insertBefore(newElem, targetElement.nextSibling)
+    }
+
+    document.getElementsByTagName("body")[0].appendChild(inputDiv);
+
+    var selectFile, mainContainer = document.createElement("div"),
+        popupMain = document.createElement("div"),
+        dropDownDiv = document.createElement("div"),
+        sheetNameDiv = document.createElement("h2"),
+        closeBtn = document.createElement("b");
+
+    sheetNameDiv.innerHTML = "Sheet Name";
+    mainContainer.setAttribute("id", "container");
+    dropDownDiv.setAttribute("id", "sheetDropdown");
+    var selectDiv = document.createElement("select");
+    var optionDiv = document.createElement("option");
+    var inputFile = document.getElementById("fileUpload");
+    var propsList = document.createElement("div");
+    propsList.setAttribute("id", "objProps");
+    var sheetNames = [];
+    var sheetData = [];
+    var jsonData = null;
+    this.xls = '';
+
+    function createJSON() {
+        sheetNames = [];
+        sheetData = [];
+
+        if (selectFile) {
+            var e = new FileReader;
+            var $popDiv = document.getElementById("popupExcel");
+            
+            e.onload = function (e) {
+                var t = e.target.result,
+                    n = XLSX.read(t, {
+                        type: "binary"
+                    });
+
+                ///////
+                var excelData = n.Sheets[n.SheetNames[0]];
+                var dataLimit = excelData['!ref'];
+                var startLimit = dataLimit.split(':')[0];
+                startLimit = splitCharAndNum(startLimit);
+                var endLimit = dataLimit.split(':')[1];
+                endLimit = splitCharAndNum(endLimit);
+                var keysProp = Object.keys(excelData);
+                var propTitle = [];
+                var newObj = [];
+                keysProp.pop();
+                keysProp.shift();
+
+                keysProp.forEach(function (val, indx) {
+                    var chars = val.slice(0, val.search(/\d/));
+                    var numbs = Number(val.replace(chars, ''));
+                    var obj = {
+                        char: chars,
+                        num: numbs
+                    }
+                    propTitle.push(obj.char);
+                    newObj.push(obj);
+                });
+
+                propTitle = propTitle.filter((a, b) => propTitle.indexOf(a) === b);
+                
+                console.log(newObj,'newObj');
+
+               
+
+                var colArr = [];
+                var rowArr = [];
+                var objProp = [];
+                var objPropTitle = [];
+                var objProVal = [];
+
+                function getObjProp(data, indx) {
+                    var checkBox = document.createElement("input");
+                    var inpLabel = document.createElement("span");
+                    checkBox.type = 'checkbox';
+                    var idVal = 'objTitle_' + indx;
+                    checkBox.setAttribute('id', idVal);
+                    checkBox.setAttribute('class', 'objTitle');
+                    propsList.appendChild(checkBox);
+                    propsList.appendChild(inpLabel);
+                    checkBox.value = data;
+                    inpLabel.innerText = data;
+                }
+               
+                propTitle.forEach(function (value, indx) {
+                    colArr[indx] = new Array();                    
+                    keysProp.forEach(function (a, b) {
+                        var chars = a.slice(0, a.search(/\d/));
+                        if (chars === value) {
+                            colArr[indx].push(a);
+                        }
+                    });
+                    objProp.push(colArr[indx][0]);
+                    var title = excelData[colArr[indx][0]].h;
+                    objPropTitle.push(title);
+                    getObjProp(title, indx + 1);
+                });
+
+             
+
+                colArr.forEach(function(val,indx){
+                    rowArr.push(colArr[indx]);
+                    rowArr[indx].shift();
+                });                                
+                  
+
+                console.log(rowArr,'rowVal');
+
+                var genBtn = document.createElement('button');
+                genBtn.id = 'gen_button';
+                genBtn.innerHTML = 'genStart';
+                propsList.appendChild(genBtn);
+                document.getElementById('gen_button').addEventListener('click', function () {
+                    objPropTitle.forEach(function(val,indx){
+                        var checkElem = document.getElementById('objTitle_'+(indx+1));
+                       if(checkElem.checked){
+                            console.log(checkElem.value,indx);
+                       }
+                    });    
+                    console.log(excelData,'excelData');
+                });
+
+                
+
+
+                /////////// 
+                n.SheetNames.forEach(function (e) {
+                    sheetNames.push(e);
+                    let t = XLSX.utils.sheet_to_row_object_array(n.Sheets[e]),
+                        i = JSON.stringify(t);
+                    sheetData.push(i);
+                    jsonData = sheetData[0];
+                   // $popDiv.innerText = jsonData;
+                    //$popDiv.innerHTML = XLSX.utils.sheet_to_html(n.Sheets[n.SheetNames[0]]);
+                    //$popDiv.style.display = 'block';
+                    //dropDownDiv.style.display = 'block';                    
+                });
+
+                /*sheetNames.forEach(function (e) {
+                    optionDiv = document.createElement("option");
+                    selectDiv.appendChild(optionDiv);
+                    optionDiv.value = e;
+                    optionDiv.innerHTML = e;
+                    $popDiv.style.display = 'block';
+                });*/
+
+                selectDiv.id = 'sheetOption';
+                document.getElementById("sheetOption").addEventListener("change", function (e) {
+                    var indx = e.currentTarget.selectedIndex;
+                    jsonData = JSON.stringify(sheetData[indx]);
+                    $popDiv.innerText = jsonData;
+                });
+
+            }, e.readAsBinaryString(selectFile)
+        }
+    }
+
+    function splitCharAndNum(str) {
+        var chars = str.slice(0, str.search(/\d/));
+        var numbs = Number(str.replace(chars, '')) + 1;
+        return chars + numbs;
+    }
+
+    popupMain.setAttribute("id", "popupExcel");
+    document.getElementsByTagName("body")[0].appendChild(mainContainer);
+    mainContainer.appendChild(popupMain);
+    popupMain.appendChild(closeBtn);
+    mainContainer.appendChild(dropDownDiv);
+    dropDownDiv.appendChild(sheetNameDiv);
+    dropDownDiv.appendChild(selectDiv);
+    mainContainer.appendChild(propsList);
+
+
+    closeBtn.style.position = "absolute";
+    closeBtn.style.right = "0";
+    closeBtn.style.padding = "15px";
+    dropDownDiv.style.display = 'none';
+    popupMain.style.position = "fixed";
+    popupMain.style.display = "none";
+    popupMain.style.background = "#fff";
+    popupMain.style.height = "100%";
+    popupMain.style.top = "0";
+    popupMain.style.padding = "45px";
+    popupMain.style.width = "50%";
+    popupMain.style.border = "1px solid #000";
+    popupMain.style.right = "0";
+    popupMain.style.left = "0";
+    popupMain.style.margin = "5% auto";
+    popupMain.style.overflowY = "scroll";
+    popupMain.style.overflowWrap = "break-word";
+    popupMain.style.overflowX = "hidden";
+    popupMain.style.zIndex = "9999999999999";
+    inputDiv.style.display = "none";
+    // inputFile.click();       
+
+
+    inputFile.addEventListener("change", function (e) {
+        selectFile = e.target.files[0], createJSON()
+    });
+
+
+
+</script>
+
+</html>
+<!--
+javascript:(function(){var scr=document.createElement("script");scr.src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.15.5/xlsx.full.min.js",document.getElementsByTagName("head")[0].appendChild(scr);var inputDiv=document.createElement("input");if(inputDiv.setAttribute("accept",".xls,.xlsx"),inputDiv.setAttribute("id","fileUpload"),inputDiv.setAttribute("type","file"),null!=document.body)document.body.appendChild(inputDiv);else{var targetElement=document.getElementsByTagName("head")[0],parent=targetElement.parentNode,newElem=document.createElement("body");parent.lastChild==targetElement?parent.appendChild(newElem):parent.insertBefore(newElem,targetElement.nextSibling)}document.getElementsByTagName("body")[0].appendChild(inputDiv);var selectFile,popupMain=document.createElement("div");function createJSON(){if(selectFile){var e=new FileReader;e.onload=function(e){var t=e.target.result,n=XLSX.read(t,{type:"binary"});n.SheetNames.forEach(e=>{let t=XLSX.utils.sheet_to_row_object_array(n.Sheets[e]),i=JSON.stringify(t);console.log(i),document.getElementById("popupExcel").innerHTML=i})},e.readAsBinaryString(selectFile)}}popupMain.setAttribute("id","popupExcel"),document.getElementsByTagName("body")[0].appendChild(popupMain),popupMain.style.position="fixed",popupMain.style.background="#fff",popupMain.style.height="100%",popupMain.style.top="0",popupMain.style.overflow="scroll",popupMain.style.zIndex="9999999999999",inputDiv.style.display="none",inputDiv.click(),document.getElementById("fileUpload").addEventListener("change",function(e){selectFile=e.target.files[0],createJSON()});})();
+-->
